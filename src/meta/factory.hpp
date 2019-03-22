@@ -118,6 +118,10 @@ class factory {
         return *this;
     }
 
+    bool unregister() noexcept {
+        // TODO
+    }
+
     factory() noexcept = default;
 
 public:
@@ -513,6 +517,24 @@ inline factory<Type> reflect(const char *str, Property &&... property) noexcept 
 template<typename Type>
 inline factory<Type> reflect() noexcept {
     return factory<Type>{};
+}
+
+
+/**
+ * @brief Basic function to unregister a type.
+ *
+ * This function unregisters a type and all its data members, member functions
+ * and properties, as well as its constructors, destructors and conversion
+ * functions if any.<br/>
+ * Base classes aren't unregistered but the link between the two types is
+ * removed.
+ *
+ * @tparam Type Type to unregister.
+ * @return True if the type to unregister exists, false otherwise.
+ */
+template<typename Type>
+inline bool unregister() noexcept {
+    return factory<Type>().unregister();
 }
 
 
