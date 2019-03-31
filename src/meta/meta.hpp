@@ -42,7 +42,7 @@ struct type_node;
 
 
 struct prop_node final {
-    prop_node * const next;
+    prop_node * next;
     any(* const key)();
     any(* const value)();
     prop(* const clazz)();
@@ -50,8 +50,9 @@ struct prop_node final {
 
 
 struct base_node final {
-    base_node * const next;
+    base_node ** const underlying;
     type_node * const parent;
+    base_node * next;
     type_node *(* const ref)();
     void *(* const cast)(void *);
     base(* const clazz)();
@@ -59,8 +60,9 @@ struct base_node final {
 
 
 struct conv_node final {
-    conv_node * const next;
+    conv_node ** const underlying;
     type_node * const parent;
+    conv_node * next;
     type_node *(* const ref)();
     any(* const convert)(void *);
     conv(* const clazz)();
@@ -68,10 +70,11 @@ struct conv_node final {
 
 
 struct ctor_node final {
+    ctor_node ** const underlying;
     using size_type = std::size_t;
-    ctor_node * const next;
     type_node * const parent;
-    prop_node * const prop;
+    ctor_node * next;
+    prop_node * prop;
     const size_type size;
     type_node *(* const arg)(size_type);
     any(* const invoke)(any * const);
@@ -80,6 +83,7 @@ struct ctor_node final {
 
 
 struct dtor_node final {
+    dtor_node ** const underlying;
     type_node * const parent;
     bool(* const invoke)(handle);
     dtor(* const clazz)();
@@ -87,11 +91,12 @@ struct dtor_node final {
 
 
 struct data_node final {
+    data_node ** const underlying;
     const char *name;
-    const std::size_t id;
-    data_node * const next;
+    std::size_t id;
     type_node * const parent;
-    prop_node * const prop;
+    data_node * next;
+    prop_node * prop;
     const bool is_const;
     const bool is_static;
     type_node *(* const ref)();
@@ -103,11 +108,12 @@ struct data_node final {
 
 struct func_node final {
     using size_type = std::size_t;
+    func_node ** const underlying;
     const char *name;
-    const std::size_t id;
-    func_node * const next;
+    std::size_t id;
     type_node * const parent;
-    prop_node * const prop;
+    func_node * next;
+    prop_node * prop;
     const size_type size;
     const bool is_const;
     const bool is_static;
@@ -120,9 +126,9 @@ struct func_node final {
 
 struct type_node final {
     const char *name;
-    const std::size_t id;
-    type_node * const next;
-    prop_node * const prop;
+    std::size_t id;
+    type_node * next;
+    prop_node * prop;
     const bool is_void;
     const bool is_integral;
     const bool is_floating_point;
