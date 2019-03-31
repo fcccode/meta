@@ -21,6 +21,10 @@ template<typename Type, typename... Property>
 factory<Type> reflect(const char *str, Property &&... property) noexcept;
 
 
+template<typename Other>
+void unregister() noexcept;
+
+
 /**
  * @brief A meta factory to be used for reflection purposes.
  *
@@ -66,7 +70,6 @@ class factory {
     template<typename Owner, typename Property, typename... Other>
     internal::prop_node * properties(Property &&property, Other &&... other) {
         static std::decay_t<Property> prop{};
-        prop = std::move(property);
 
         static internal::prop_node node{
             nullptr,
@@ -75,6 +78,7 @@ class factory {
             []() -> meta::prop { return &node; }
         };
 
+        prop = std::forward<Property>(property);
         node.next = properties<Owner>(std::forward<Other>(other)...);
         assert(!duplicate(any{std::get<0>(prop)}, node.next));
         return &node;
@@ -85,8 +89,8 @@ class factory {
         static internal::type_node node{
             nullptr,
             {},
-            internal::type_info<>::type,
-            properties<Type>(std::forward<Property>(property)...),
+            nullptr,
+            nullptr,
             std::is_void_v<Type>,
             std::is_integral_v<Type>,
             std::is_floating_point_v<Type>,
@@ -104,6 +108,8 @@ class factory {
 
         node.name = name;
         node.id = std::hash<std::string>{}(name);
+        node.next = internal::type_info<>::type;
+        node.prop = properties<Type>(std::forward<Property>(property)...);
         assert(!duplicate(node.id, node.next));
         assert(!internal::type_info<Type>::type);
         internal::type_info<Type>::type = &node;
@@ -127,38 +133,39 @@ class factory {
         }
     }
 
-    template<auto *Member>
+    template<auto Member>
     auto unregister_all(int) -> decltype((internal::type_info<Type>::type->*Member)->prop, void()) {
         while(internal::type_info<Type>::type->*Member) {
             auto node = internal::type_info<Type>::type->*Member;
             internal::type_info<Type>::type->*Member = node->next;
-            unregister_prop(&(internal::type_info<Type>::type->*Member)->prop);
-            *node->underlying = nullptr;
+            unregister_prop(&node->prop);
             node->next = nullptr;
+            *node->underlying = nullptr;
         }
     }
 
-    template<auto *Member>
+    template<auto Member>
     void unregister_all(char) {
         while(internal::type_info<Type>::type->*Member) {
             auto node = internal::type_info<Type>::type->*Member;
             internal::type_info<Type>::type->*Member = node->next;
-            *node->underlying = nullptr;
             node->next = nullptr;
+            *node->underlying = nullptr;
         }
     }
 
     void unregister() noexcept {
         if(internal::type_info<Type>::type) {
-            if(auto **curr = &internal::type_info<>::type; *curr == internal::type_info<Type>::type) {
-                *curr = internal::type_info<Type>::type->next;
+            if(auto *curr = internal::type_info<>::type; curr == internal::type_info<Type>::type) {
+                internal::type_info<>::type = internal::type_info<Type>::type->next;
             } else {
-                while((*curr)->next != internal::type_info<Type>::type) {
-                    curr = &(*curr)->next;
+                while(curr && curr->next != internal::type_info<Type>::type) {
+                    curr = curr->next;
                 }
 
-                assert((*curr)->next == internal::type_info<Type>::type);
-                (*curr)->next = internal::type_info<Type>::type->next;
+                if(curr) {
+                    curr->next = internal::type_info<Type>::type->next;
+                }
             }
 
             unregister_prop(&internal::type_info<Type>::type->prop);
@@ -181,6 +188,9 @@ public:
     template<typename Other, typename... Property>
     friend factory<Other> reflect(const char *str, Property &&... property) noexcept;
 
+    template<typename Other>
+    friend void unregister() noexcept;
+
     /**
      * @brief Assigns a meta base to a meta type.
      *
@@ -197,12 +207,13 @@ public:
         static internal::base_node node{
             &internal::type_info<Type>::template base<Base>,
             type,
-            type->base,
+            nullptr,
             &internal::type_info<Base>::resolve,
             [](void *instance) -> void * { return static_cast<Base *>(static_cast<Type *>(instance)); },
             []() -> meta::base { return &node; }
         };
 
+        node.next = type->base;
         assert((!internal::type_info<Type>::template base<Base>));
         internal::type_info<Type>::template base<Base> = &node;
         type->base = &node;
@@ -227,12 +238,13 @@ public:
         static internal::conv_node node{
             &internal::type_info<Type>::template conv<To>,
             type,
-            type->conv,
+            nullptr,
             &internal::type_info<To>::resolve,
             [](void *instance) -> any { return static_cast<std::decay_t<To>>(*static_cast<Type *>(instance)); },
             []() -> meta::conv { return &node; }
         };
 
+        node.next = type->conv;
         assert((!internal::type_info<Type>::template conv<To>));
         internal::type_info<Type>::template conv<To> = &node;
         type->conv = &node;
@@ -263,7 +275,7 @@ public:
         static internal::ctor_node node{
             &internal::type_info<Type>::template ctor<typename helper_type::args_type>,
             type,
-            type->ctor,
+            nullptr,
             nullptr,
             helper_type::size,
             &helper_type::arg,
@@ -271,6 +283,7 @@ public:
             []() -> meta::ctor { return &node; }
         };
 
+        node.next = type->ctor;
         node.prop = properties<typename helper_type::args_type>(std::forward<Property>(property)...);
         assert((!internal::type_info<Type>::template ctor<typename helper_type::args_type>));
         internal::type_info<Type>::template ctor<typename helper_type::args_type> = &node;
@@ -299,7 +312,7 @@ public:
         static internal::ctor_node node{
             &internal::type_info<Type>::template ctor<typename helper_type::args_type>,
             type,
-            type->ctor,
+            nullptr,
             nullptr,
             helper_type::size,
             &helper_type::arg,
@@ -307,6 +320,7 @@ public:
             []() -> meta::ctor { return &node; }
         };
 
+        node.next = type->ctor;
         node.prop = properties<typename helper_type::args_type>(std::forward<Property>(property)...);
         assert((!internal::type_info<Type>::template ctor<typename helper_type::args_type>));
         internal::type_info<Type>::template ctor<typename helper_type::args_type> = &node;
@@ -380,7 +394,7 @@ public:
                 nullptr,
                 {},
                 type,
-                type->data,
+                nullptr,
                 nullptr,
                 true,
                 true,
@@ -398,7 +412,7 @@ public:
                 nullptr,
                 {},
                 type,
-                type->data,
+                nullptr,
                 nullptr,
                 std::is_const_v<data_type<Data>>,
                 !std::is_member_object_pointer_v<decltype(Data)>,
@@ -414,6 +428,7 @@ public:
 
         curr->name = str;
         curr->id = std::hash<std::string>{}(str);
+        curr->next = type->data;
         assert(!duplicate(curr->id, curr->next));
         assert((!internal::type_info<Type>::template data<Data>));
         internal::type_info<Type>::template data<Data> = curr;
@@ -455,7 +470,7 @@ public:
             nullptr,
             {},
             type,
-            type->data,
+            nullptr,
             nullptr,
             false,
             false,
@@ -467,6 +482,7 @@ public:
 
         node.name = str;
         node.id = std::hash<std::string>{}(str);
+        node.next = type->data;
         node.prop = properties<owner_type>(std::forward<Property>(property)...);
         assert(!duplicate(node.id, node.next));
         assert((!internal::type_info<Type>::template data<Setter, Getter>));
@@ -501,7 +517,7 @@ public:
             nullptr,
             {},
             type,
-            type->func,
+            nullptr,
             nullptr,
             func_type<Func>::size,
             func_type<Func>::is_const,
@@ -518,6 +534,7 @@ public:
 
         node.name = str;
         node.id = std::hash<std::string>{}(str);
+        node.next = type->func;
         node.prop = properties<owner_type>(std::forward<Property>(property)...);
         assert(!duplicate(node.id, node.next));
         assert((!internal::type_info<Type>::template func<Func>));

@@ -2034,8 +2034,8 @@ inline bool destroy([[maybe_unused]] handle handle) {
 
 template<typename Type, typename... Args, std::size_t... Indexes>
 inline any construct(any * const args, std::index_sequence<Indexes...>) {
-    std::array<bool, sizeof...(Args)> can_cast{{(args+Indexes)->can_cast<std::decay_t<Args>>()...}};
-    std::array<bool, sizeof...(Args)> can_convert{{(std::get<Indexes>(can_cast) ? false : (args+Indexes)->can_convert<std::decay_t<Args>>())...}};
+    [[maybe_unused]] std::array<bool, sizeof...(Args)> can_cast{{(args+Indexes)->can_cast<std::decay_t<Args>>()...}};
+    [[maybe_unused]] std::array<bool, sizeof...(Args)> can_convert{{(std::get<Indexes>(can_cast) ? false : (args+Indexes)->can_convert<std::decay_t<Args>>())...}};
     any any{};
 
     if(((std::get<Indexes>(can_cast) || std::get<Indexes>(can_convert)) && ...)) {
