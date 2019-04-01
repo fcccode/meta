@@ -1474,20 +1474,22 @@ TEST_F(Meta, ArithmeticTypeAndNamedConstants) {
 }
 
 TEST_F(Meta, Unregister) {
-    meta::unregister<double>();
-    meta::unregister<char>();
-    meta::unregister<properties>();
-    meta::unregister<unsigned int>();
-    meta::unregister<base_type>();
-    meta::unregister<derived_type>();
-    meta::unregister<empty_type>();
-    meta::unregister<fat_type>();
-    meta::unregister<data_type>();
-    meta::unregister<func_type>();
-    meta::unregister<setter_getter_type>();
-    meta::unregister<an_abstract_type>();
-    meta::unregister<another_abstract_type>();
-    meta::unregister<concrete_type>();
+    ASSERT_FALSE(meta::unregister<float>());
+    ASSERT_TRUE(meta::unregister<double>());
+    ASSERT_TRUE(meta::unregister<char>());
+    ASSERT_TRUE(meta::unregister<properties>());
+    ASSERT_TRUE(meta::unregister<unsigned int>());
+    ASSERT_TRUE(meta::unregister<base_type>());
+    ASSERT_TRUE(meta::unregister<derived_type>());
+    ASSERT_TRUE(meta::unregister<empty_type>());
+    ASSERT_TRUE(meta::unregister<fat_type>());
+    ASSERT_TRUE(meta::unregister<data_type>());
+    ASSERT_TRUE(meta::unregister<func_type>());
+    ASSERT_TRUE(meta::unregister<setter_getter_type>());
+    ASSERT_TRUE(meta::unregister<an_abstract_type>());
+    ASSERT_TRUE(meta::unregister<another_abstract_type>());
+    ASSERT_TRUE(meta::unregister<concrete_type>());
+    ASSERT_FALSE(meta::unregister<double>());
 
     ASSERT_FALSE(meta::resolve("char"));
     ASSERT_FALSE(meta::resolve("base"));

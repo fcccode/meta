@@ -21,8 +21,8 @@ template<typename Type, typename... Property>
 factory<Type> reflect(const char *str, Property &&... property) noexcept;
 
 
-template<typename Other>
-void unregister() noexcept;
+template<typename Type>
+bool unregister() noexcept;
 
 
 /**
@@ -154,8 +154,10 @@ class factory {
         }
     }
 
-    void unregister() noexcept {
-        if(internal::type_info<Type>::type) {
+    bool unregister() noexcept {
+        const auto registered = internal::type_info<Type>::type;
+
+        if(registered) {
             if(auto *curr = internal::type_info<>::type; curr == internal::type_info<Type>::type) {
                 internal::type_info<>::type = internal::type_info<Type>::type->next;
             } else {
@@ -180,6 +182,8 @@ class factory {
             internal::type_info<Type>::type->next = nullptr;
             internal::type_info<Type>::type = nullptr;
         }
+
+        return registered;
     }
 
     factory() noexcept = default;
@@ -189,7 +193,7 @@ public:
     friend factory<Other> reflect(const char *str, Property &&... property) noexcept;
 
     template<typename Other>
-    friend void unregister() noexcept;
+    friend bool unregister() noexcept;
 
     /**
      * @brief Assigns a meta base to a meta type.
@@ -524,12 +528,8 @@ public:
             func_type<Func>::is_static,
             &internal::type_info<typename func_type<Func>::return_type>::resolve,
             &func_type<Func>::arg,
-            [](handle handle, any *any) {
-                return internal::invoke<Type, Func>(handle, any, std::make_index_sequence<func_type<Func>::size>{});
-            },
-            []() -> meta::func {
-                return &node;
-            }
+            [](handle handle, any *any) { return internal::invoke<Type, Func>(handle, any, std::make_index_sequence<func_type<Func>::size>{}); },
+            []() -> meta::func { return &node; }
         };
 
         node.name = str;
@@ -596,8 +596,8 @@ inline factory<Type> reflect() noexcept {
  * @return True if the type to unregister exists, false otherwise.
  */
 template<typename Type>
-inline void unregister() noexcept {
-    factory<Type>().unregister();
+inline bool unregister() noexcept {
+    return factory<Type>().unregister();
 }
 
 
