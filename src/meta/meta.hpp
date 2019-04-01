@@ -70,8 +70,8 @@ struct conv_node final {
 
 
 struct ctor_node final {
-    ctor_node ** const underlying;
     using size_type = std::size_t;
+    ctor_node ** const underlying;
     type_node * const parent;
     ctor_node * next;
     prop_node * prop;
