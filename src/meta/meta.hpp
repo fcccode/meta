@@ -2161,13 +2161,9 @@ type_node * info_node<Type>::resolve() noexcept {
             std::is_function_v<Type>,
             std::is_member_object_pointer_v<Type>,
             std::is_member_function_pointer_v<Type>,
-            []() -> meta::type {
-                return internal::type_info<std::remove_pointer_t<Type>>::resolve();
-            },
+            []() -> meta::type { return internal::type_info<std::remove_pointer_t<Type>>::resolve(); },
             &destroy<Type>,
-            []() -> meta::type {
-                return &node;
-            }
+            []() -> meta::type { return &node; }
         };
 
         type = &node;
